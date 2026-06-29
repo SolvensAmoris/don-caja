@@ -1,95 +1,27 @@
-<!DOCTYPE html>
-<html lang="es-MX">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Don Caja | Tu Negocio en Orden</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const MI_CONTRASENA = "Caja"; 
-        const firebaseConfig = { /* Pega aquí tus credenciales de Firebase */ };
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        window.verificarClave = () => {
-            if(document.getElementById('pass').value === MI_CONTRASENA) {
-                document.getElementById('landing').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'block';
-            } else { alert("Clave incorrecta."); }
-        };
-
-        window.registrarDato = async () => {
-            const msg = document.getElementById("mensaje").value;
-            if (!msg.trim()) return;
-            const m = msg.match(/(\d+)\s*(?:pesos|mxn|\$)/i);
-            await addDoc(collection(db, "registros"), { desc: msg, monto: m ? parseInt(m[1]) : 0, ts: new Date() });
-            document.getElementById("mensaje").value = "";
-        };
-
-        window.exportarCSV = async () => {
-            const snap = await getDocs(collection(db, "registros"));
-            let csv = "Fecha,Descripcion,Monto\n";
-            snap.forEach(d => { csv += `${d.data().ts.toDate().toLocaleDateString()},${d.data().desc.replace(/,/g, "")},${d.data().monto}\n`; });
-            const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            const a = document.createElement('a'); a.href = url; a.download = "Reporte.csv"; a.click();
-        };
-
-        onSnapshot(query(collection(db, "registros"), orderBy("ts", "desc")), (snap) => {
-            let histHtml = "", totalHoy = 0, hoy = new Date().toDateString();
-            snap.forEach(doc => {
-                const d = doc.data();
-                if (d.ts.toDate().toDateString() === hoy) totalHoy += d.monto;
-                histHtml += `<div style="padding:8px; border-bottom:1px solid #eee;"><strong>$${d.monto}</strong> - ${d.desc}</div>`;
-            });
-            document.getElementById("totalHoy").innerText = "$" + totalHoy;
-            document.getElementById("historial").innerHTML = histHtml;
-        });
-    </script>
-    <style>
-        :root { --bg:#FDFBF7; --primary:#228B22; --accent:#635bff; }
-        body { background:var(--bg); font-family:sans-serif; margin:0; padding:20px; display:flex; justify-content:center; }
-        .card { background:white; padding:25px; border-radius:20px; max-width:400px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.1); }
-        h1 { color:var(--primary); text-align:center; }
-        .feature { margin: 20px 0; font-size: 14px; color: #555; }
-        input, textarea { width:100%; padding:12px; margin:10px 0; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
-        button { width:100%; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; color:white; margin-top:10px; }
-        
-        .gothic-signature { 
-            font-size: 1.6rem; 
-            text-align: center; 
-            margin-top: 25px; 
-            color: #2D3436; 
-            letter-spacing: 1px;
-        }
-        .footer { text-align: center; font-size: 11px; color: #999; margin-top: 5px; }
-    </style>
-</head>
-<body>
-    <!-- LANDING -->
-    <div class="card" id="landing">
-        <h1>Don Caja 💼</h1>
-        <p style="text-align:center;">Tu copiloto financiero para anotar ventas y llevar el control total desde el celular.</p>
-        <div class="feature">✅ Registro inteligente de ventas.<br>✅ Reportes a Excel en un clic.<br>✅ Acceso seguro y rápido.</div>
-        <input type="password" id="pass" placeholder="Clave de acceso">
-        <button style="background:var(--primary);" onclick="verificarClave()">Entrar a mi caja</button>
-        <a href="TU_LINK_STRIPE" style="display:block; text-align:center; margin-top:15px; color:var(--accent);">¿Quieres acceso? Suscríbete aquí</a>
-        <div class="gothic-signature">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
-        <div class="footer">© 2026. Todos los derechos reservados.</div>
+<!-- LANDING PAGE -->
+<div class="card" id="landing">
+    <h1>Don Caja 💼</h1>
+    <p style="text-align:center;">El control financiero que tu negocio necesita, simplificado al máximo.</p>
+    
+    <div class="feature" style="margin: 20px 0; font-size: 14px; line-height: 1.6;">
+        🚀 <b>Registro Inteligente:</b> Escribe tu venta y la app hace el resto.<br>
+        📊 <b>Reportes al Instante:</b> Descarga tu flujo de caja a Excel.<br>
+        🔐 <b>Seguridad Total:</b> Datos protegidos en la nube.
     </div>
-
-    <!-- APP -->
-    <div class="card" id="app-screen" style="display:none;">
-        <h1>Don Caja 💼</h1>
-        <div style="background:#E8F5E9; padding:15px; text-align:center; border-radius:10px;">Ventas hoy: <h2 id="totalHoy" style="margin:0;">$0</h2></div>
-        <textarea id="mensaje" placeholder="Ej: Vendí 3 hamburguesas por 420 pesos"></textarea>
-        <button style="background:var(--primary);" onclick="registrarDato()">¡Anotar venta!</button>
-        <button style="background:#3498db;" onclick="window.exportarCSV()">Descargar Reporte (CSV)</button>
-        <div id="historial" style="margin-top:20px; font-size:13px;"></div>
-        <div class="gothic-signature" style="font-size: 1.3rem;">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
-        <div class="footer">© 2026. Derechos reservados.</div>
-    </div>
-</body>
-</html>
+    
+    <input type="password" id="pass" placeholder="Clave de acceso" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px;">
+    <button style="width: 100%; padding: 12px; background:var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="verificarClave()">Entrar a mi caja</button>
+    
+    <hr style="border:0; border-top:1px solid #eee; margin:25px 0;">
+    
+    <p style="text-align:center; font-size: 13px; color: #666; margin-bottom: 15px;">¿Aún no tienes acceso?</p>
+    
+    <a href="https://buy.stripe.com/aFafZh0oK648eYD8xVew800" 
+       target="_blank" 
+       style="display:block; text-align:center; padding:14px; background:var(--accent); color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+       Obtener Suscripción Premium
+    </a>
+    
+    <div class="gothic-signature" style="text-align:center; margin-top: 30px; font-family: 'serif'; opacity: 0.7;">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
+    <div class="footer" style="text-align:center; font-size: 10px; color: #aaa; margin-top: 10px;">© 2026. Todos los derechos reservados.</div>
+</div>
