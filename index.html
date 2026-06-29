@@ -4,61 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Don Caja - Tu Copiloto</title>
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // TUS CREDENCIALES (Cámbialas por las de tu consola Firebase)
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROYECTO.firebaseapp.com",
-            projectId: "TU_PROYECTO_ID",
-            storageBucket: "TU_PROYECTO.appspot.com",
-            messagingSenderId: "TU_ID",
-            appId: "TU_APP_ID"
+            apiKey: "AIzaSyBlOyRg0e_bv6yXI4gtO-e0sgNoFPVkI14",
+            authDomain: "don-caja-app.firebaseapp.com",
+            projectId: "don-caja-app",
+            storageBucket: "don-caja-app.firebasestorage.app",
+            messagingSenderId: "529138964879",
+            appId: "1:529138964879:web:88e3baf0c50454c6bb93fa"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Lógica de registro
+        // Función para registrar
         window.registrarDato = async () => {
             const mensaje = document.getElementById("mensaje").value;
             const feedback = document.getElementById("feedback");
 
-            if (mensaje.trim() === "") {
-                feedback.innerText = "¡Oye! No me dijiste nada.";
+            if (!mensaje.trim()) {
+                feedback.innerText = "¡Cuéntame algo primero!";
                 return;
             }
 
             try {
                 await addDoc(collection(db, "registros"), {
                     texto: mensaje,
-                    fecha: new Date().toISOString()
+                    fecha: new Date().toLocaleString()
                 });
                 feedback.innerText = "✅ ¡Anotado, Don Caja!";
                 document.getElementById("mensaje").value = "";
             } catch (e) {
-                feedback.innerText = "Error, intenta de nuevo.";
+                feedback.innerText = "Error: " + e.message;
             }
         };
     </script>
     <style>
-        :root { --bg: #FDFBF7; --primary: #228B22; }
-        body { background: var(--bg); font-family: sans-serif; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 120px; border: 1px solid #ddd; padding: 10px; border-radius: 10px; }
-        button { width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
+        body { background: #FDFBF7; font-family: sans-serif; padding: 20px; text-align: center; }
+        .card { background: white; padding: 25px; border-radius: 20px; max-width: 400px; margin: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 100px; margin-top: 10px; border-radius: 10px; border: 1px solid #ccc; padding: 10px; }
+        button { width: 100%; padding: 15px; margin-top: 15px; background: #228B22; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
     <div class="card">
         <h1>Don Caja 💼</h1>
         <textarea id="mensaje" placeholder="Ej: Vendí 3 hamburguesas por 420 pesos"></textarea>
         <button onclick="registrarDato()">¡Anotado, Don Caja!</button>
-        <p id="feedback"></p>
+        <p id="feedback" style="margin-top:15px;"></p>
     </div>
-
 </body>
 </html>
