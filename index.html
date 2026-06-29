@@ -1,27 +1,144 @@
-<!-- LANDING PAGE -->
-<div class="card" id="landing">
-    <h1>Don Caja 💼</h1>
-    <p style="text-align:center;">El control financiero que tu negocio necesita, simplificado al máximo.</p>
-    
-    <div class="feature" style="margin: 20px 0; font-size: 14px; line-height: 1.6;">
-        🚀 <b>Registro Inteligente:</b> Escribe tu venta y la app hace el resto.<br>
-        📊 <b>Reportes al Instante:</b> Descarga tu flujo de caja a Excel.<br>
-        🔐 <b>Seguridad Total:</b> Datos protegidos en la nube.
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don Caja - Control Financiero</title>
+    <style>
+        :root {
+            --primary: #2c3e50; /* Color oscuro profesional */
+            --accent: #27ae60;  /* Verde de éxito/dinero para el botón de compra */
+            --bg: #f4f7f6;      /* Fondo gris claro de la pantalla */
+            --text: #333333;
+            --card-bg: #ffffff;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 28px;
+        }
+        
+        .feature {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        
+        .btn-entrar {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-entrar:hover {
+            background: #1a252f;
+        }
+        
+        .stripe-btn {
+            display: block;
+            text-align: center;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stripe-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .gothic-signature {
+            text-align: center;
+            margin-top: 30px;
+            font-family: 'Georgia', serif;
+            font-size: 18px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card" id="landing">
+        <h1>Don Caja 💼</h1>
+        <p style="text-align:center; font-size: 15px; color: #666;">El control financiero que tu negocio necesita, simplificado al máximo.</p>
+        
+        <div class="feature">
+            🚀 <b>Registro Inteligente:</b> Escribe tu venta y la app hace el resto.<br>
+            📊 <b>Reportes al Instante:</b> Descarga tu flujo de caja a Excel.<br>
+            🔐 <b>Seguridad Total:</b> Datos protegidos en la nube.
+        </div>
+        
+        <input type="password" id="pass" placeholder="Clave de acceso">
+        <button class="btn-entrar" onclick="verificarClave()">Entrar a mi caja</button>
+        
+        <hr style="border:0; border-top:1px solid #eee; margin:25px 0;">
+        
+        <p style="text-align:center; font-size: 13px; color: #666; margin-bottom: 15px;">¿Aún no tienes acceso?</p>
+        
+        <a href="https://buy.stripe.com/aFafZh0oK648eYD8xVew800" target="_blank" class="stripe-btn">
+           Obtener Suscripción Premium
+        </a>
+        
+        <div class="gothic-signature">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
+        <div style="text-align:center; font-size: 10px; color: #aaa; margin-top: 10px;">© 2026. Todos los derechos reservados.</div>
     </div>
-    
-    <input type="password" id="pass" placeholder="Clave de acceso" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px;">
-    <button style="width: 100%; padding: 12px; background:var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="verificarClave()">Entrar a mi caja</button>
-    
-    <hr style="border:0; border-top:1px solid #eee; margin:25px 0;">
-    
-    <p style="text-align:center; font-size: 13px; color: #666; margin-bottom: 15px;">¿Aún no tienes acceso?</p>
-    
-    <a href="https://buy.stripe.com/aFafZh0oK648eYD8xVew800" 
-       target="_blank" 
-       style="display:block; text-align:center; padding:14px; background:var(--accent); color:white; border-radius:10px; text-decoration:none; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-       Obtener Suscripción Premium
-    </a>
-    
-    <div class="gothic-signature" style="text-align:center; margin-top: 30px; font-family: 'serif'; opacity: 0.7;">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
-    <div class="footer" style="text-align:center; font-size: 10px; color: #aaa; margin-top: 10px;">© 2026. Todos los derechos reservados.</div>
-</div>
+
+    <script>
+        function verificarClave() {
+            // Tu lógica de Firebase / Validación va aquí
+            alert("Conectando con la base de datos...");
+        }
+    </script>
+</body>
+</html>
