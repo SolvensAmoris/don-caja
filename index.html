@@ -6,7 +6,7 @@
     <title>Don Caja - Tu Copiloto</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlOyRg0e_bv6yXI4gtO-e0sgNoFPVkI14",
@@ -20,63 +20,63 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Registrar
         window.registrarDato = async () => {
             const mensaje = document.getElementById("mensaje").value;
-            const feedback = document.getElementById("feedback");
-
-            if (!mensaje.trim()) {
-                feedback.innerText = "¡Cuéntame qué pasó en el negocio!";
-                return;
-            }
-
+            if (!mensaje.trim()) return;
             const montoMatch = mensaje.match(/(\d+)\s*(?:pesos|mxn|\$)/i);
             const monto = montoMatch ? parseInt(montoMatch[1]) : 0;
-
-            try {
-                await addDoc(collection(db, "registros"), {
-                    descripcion: mensaje,
-                    monto: monto,
-                    timestamp: new Date()
-                });
-                feedback.style.color = "#228B22";
-                feedback.innerText = "✅ ¡Anotado! Detecté $" + monto;
-                document.getElementById("mensaje").value = "";
-            } catch (e) {
-                feedback.innerText = "Error: " + e.message;
-            }
+            await addDoc(collection(db, "registros"), { descripcion: mensaje, monto: monto, timestamp: new Date() });
+            document.getElementById("mensaje").value = "";
         };
 
-        // Mostrar últimos movimientos
-        const q = query(collection(db, "registros"), orderBy("timestamp", "desc"), limit(5));
-        onSnapshot(q, (snapshot) => {
+        // Exportar a CSV
+        window.exportarCSV = async () => {
+            const snapshot = await getDocs(collection(db, "registros"));
+            let csv = "Fecha,Descripcion,Monto\n";
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                csv += `${d.timestamp.toDate().toLocaleDateString()},${d.descripcion.replace(/,/g, "")},${d.monto}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "Reporte_DonCaja.csv";
+            a.click();
+        };
+
+        // Historial
+        onSnapshot(query(collection(db, "registros"), orderBy("timestamp", "desc"), limit(5)), (snapshot) => {
             let html = "";
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                html += `<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">
-                            <strong>$${data.monto}</strong> - ${data.descripcion}
-                         </div>`;
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                html += `<div style="padding:8px; border-bottom:1px solid #eee; font-size:13px;"><strong>$${d.monto}</strong> - ${d.descripcion}</div>`;
             });
             document.getElementById("historial").innerHTML = html;
         });
     </script>
     <style>
-        :root { --bg: #FDFBF7; --primary: #228B22; --text: #2D3436; }
-        body { background: var(--bg); font-family: Arial, sans-serif; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 20px; max-width: 400px; width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        h1 { color: var(--primary); margin-top: 0; }
-        textarea { width: 100%; height: 100px; margin-top: 15px; border-radius: 12px; border: 1px solid #ccc; padding: 12px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        #historial { margin-top: 20px; text-align: left; }
+        :root { --bg: #FDFBF7; --primary: #228B22; }
+        body { background: var(--bg); font-family: sans-serif; padding: 15px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; max-width: 400px; width: 100%; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        textarea { width: 100%; height: 80px; margin-top: 10px; border-radius: 10px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-reg { background: var(--primary); }
+        .btn-exp { background: #3498db; }
+        .btn-stripe { background: #635bff; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Don Caja 💼</h1>
         <textarea id="mensaje" placeholder="Ej: Vendí 3 hamburguesas por 420 pesos"></textarea>
-        <button onclick="registrarDato()">¡Anotado, Don Caja!</button>
-        <p id="feedback" style="text-align:center; font-weight:bold;"></p>
-        <hr style="border:0; border-top:1px solid #eee;">
-        <div id="historial"></div>
+        <button class="btn-reg" onclick="registrarDato()">¡Anotado, Don Caja!</button>
+        <button class="btn-exp" onclick="exportarCSV()">Descargar Reporte (CSV)</button>
+        <div id="historial" style="margin-top:20px;"></div>
+        <a href="TU_URL_DE_STRIPE_AQUI" style="text-decoration:none;">
+            <button class="btn-stripe">Suscribirse</button>
+        </a>
     </div>
 </body>
 </html>
