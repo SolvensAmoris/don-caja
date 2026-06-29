@@ -3,36 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Don Caja - Tu Copiloto</title>
+    <title>Don Caja | Tu Negocio en Orden</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const MI_CONTRASENA = "Caja"; 
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBlOyRg0e_bv6yXI4gtO-e0sgNoFPVkI14",
-            authDomain: "don-caja-app.firebaseapp.com",
-            projectId: "don-caja-app",
-            storageBucket: "don-caja-app.firebasestorage.app",
-            messagingSenderId: "529138964879",
-            appId: "1:529138964879:web:88e3baf0c50454c6bb93fa"
-        };
-
+        const firebaseConfig = { /* Pega aquí tus credenciales de Firebase */ };
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Seguridad
         window.verificarClave = () => {
             if(document.getElementById('pass').value === MI_CONTRASENA) {
-                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('landing').style.display = 'none';
                 document.getElementById('app-screen').style.display = 'block';
-            } else {
-                alert("Clave incorrecta, compa.");
-            }
+            } else { alert("Clave incorrecta."); }
         };
 
-        // Lógica Don Caja
         window.registrarDato = async () => {
             const msg = document.getElementById("mensaje").value;
             if (!msg.trim()) return;
@@ -61,26 +49,47 @@
         });
     </script>
     <style>
-        :root { --bg:#FDFBF7; --primary:#228B22; }
-        body { background:var(--bg); font-family:sans-serif; padding:15px; display:flex; justify-content:center; }
-        .card { background:white; padding:20px; border-radius:20px; max-width:400px; width:100%; box-shadow:0 5px 15px rgba(0,0,0,0.05); }
-        input, textarea { width:100%; padding:12px; margin:5px 0; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
-        button { width:100%; padding:12px; margin-top:8px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; color:white; }
+        :root { --bg:#FDFBF7; --primary:#228B22; --accent:#635bff; }
+        body { background:var(--bg); font-family:sans-serif; margin:0; padding:20px; display:flex; justify-content:center; }
+        .card { background:white; padding:25px; border-radius:20px; max-width:400px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color:var(--primary); text-align:center; }
+        .feature { margin: 20px 0; font-size: 14px; color: #555; }
+        input, textarea { width:100%; padding:12px; margin:10px 0; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
+        button { width:100%; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; color:white; margin-top:10px; }
+        
+        .gothic-signature { 
+            font-size: 1.6rem; 
+            text-align: center; 
+            margin-top: 25px; 
+            color: #2D3436; 
+            letter-spacing: 1px;
+        }
+        .footer { text-align: center; font-size: 11px; color: #999; margin-top: 5px; }
     </style>
 </head>
 <body>
-    <div class="card" id="auth-screen">
-        <h1>🔐 Don Caja</h1>
+    <!-- LANDING -->
+    <div class="card" id="landing">
+        <h1>Don Caja 💼</h1>
+        <p style="text-align:center;">Tu copiloto financiero para anotar ventas y llevar el control total desde el celular.</p>
+        <div class="feature">✅ Registro inteligente de ventas.<br>✅ Reportes a Excel en un clic.<br>✅ Acceso seguro y rápido.</div>
         <input type="password" id="pass" placeholder="Clave de acceso">
-        <button style="background:var(--primary);" onclick="verificarClave()">Entrar</button>
+        <button style="background:var(--primary);" onclick="verificarClave()">Entrar a mi caja</button>
+        <a href="TU_LINK_STRIPE" style="display:block; text-align:center; margin-top:15px; color:var(--accent);">¿Quieres acceso? Suscríbete aquí</a>
+        <div class="gothic-signature">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
+        <div class="footer">© 2026. Todos los derechos reservados.</div>
     </div>
+
+    <!-- APP -->
     <div class="card" id="app-screen" style="display:none;">
         <h1>Don Caja 💼</h1>
-        <div style="background:#E8F5E9; padding:10px; text-align:center; border-radius:10px;">Ventas hoy: <b id="totalHoy">$0</b></div>
+        <div style="background:#E8F5E9; padding:15px; text-align:center; border-radius:10px;">Ventas hoy: <h2 id="totalHoy" style="margin:0;">$0</h2></div>
         <textarea id="mensaje" placeholder="Ej: Vendí 3 hamburguesas por 420 pesos"></textarea>
-        <button style="background:var(--primary);" onclick="registrarDato()">¡Anotado!</button>
-        <button style="background:#3498db;" onclick="exportarCSV()">Descargar Reporte</button>
+        <button style="background:var(--primary);" onclick="registrarDato()">¡Anotar venta!</button>
+        <button style="background:#3498db;" onclick="window.exportarCSV()">Descargar Reporte (CSV)</button>
         <div id="historial" style="margin-top:20px; font-size:13px;"></div>
+        <div class="gothic-signature" style="font-size: 1.3rem;">𝕾𝖔𝖑𝖛𝖊𝖓𝖘 𝕬𝖒𝖔𝖗𝖎𝖘</div>
+        <div class="footer">© 2026. Derechos reservados.</div>
     </div>
 </body>
 </html>
