@@ -2,81 +2,354 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Prueba de Supabase</title>
-    <!-- Cargamos Supabase directamente -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don Caja - Control Financiero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp }
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey:            "AIzaSyBlOyRg0e_bv6yXI4gtO-e0sgNoFPVkI14",
+        authDomain:        "don-caja-app.firebaseapp.com",
+        projectId:         "don-caja-app",
+        storageBucket:     "don-caja-app.firebasestorage.app",
+        messagingSenderId: "529138964879",
+        appId:             "1:529138964879:web:88e3baf0c50454c6bb93fa"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db  = getFirestore(app);
+
+      window.clienteID = "";
+
+      window.verificarClave = function() {
+        const pass = document.getElementById("pass") ? document.getElementById("pass").value.trim() : "";
+        if (pass.length > 0) {
+          window.clienteID = pass; 
+          document.getElementById("pantalla-login").style.display     = "none";
+          document.getElementById("pantalla-dashboard").style.display = "block";
+          iniciarDashboard();
+        } else {
+          mostrarToast("Por favor, ingresa tu clave", "error");
+        }
+      };
+
+      function iniciarDashboard() {
+        document.getElementById("fechaHoy").textContent =
+          new Date().toLocaleDateString("es-MX", {weekday:"short", day:"numeric", month:"short"});
+
+        document.getElementById("producto").addEventListener("keydown", e => {
+          if (e.key === "Enter") document.getElementById("precio").focus();
+        });
+        document.getElementById("precio").addEventListener("keydown", e => {
+          if (e.key === "Enter") document.getElementById("cantidad").focus();
+        });
+        document.getElementById("cantidad").addEventListener("keydown", e => {
+          if (e.key === "Enter") window.registrarVenta();
+        });
+
+        const q = query(collection(db, "clientes", window.clienteID, "ventas"), orderBy("fecha", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+          const lista   = document.getElementById("listaVentas");
+          const totalEl = document.getElementById("totalDia");
+          const countEl = document.getElementById("conteoVentas");
+
+          lista.innerHTML = "";
+          let total = 0;
+          const hoy = new Date().toDateString();
+          let ventasHoy = 0;
+          window._ventasData = [];
+
+          snapshot.forEach((doc) => {
+            const d = doc.data();
+            window._ventasData.push(d);
+            const fecha = d.fecha && d.fecha.toDate ? d.fecha.toDate() : new Date();
+            const esHoy = fecha.toDateString() === hoy;
+            const subtotal = d.precio * (d.cantidad || 1);
+            if (esHoy) { total += subtotal; ventasHoy++; }
+
+            const item = document.createElement("div");
+            item.className = "venta-item" + (esHoy ? " hoy" : "");
+            const etiquetaCantidad = (d.cantidad && d.cantidad > 1) ? "<span class='venta-cantidad'>" + d.cantidad + " × $" + d.precio.toLocaleString("es-MX", {minimumFractionDigits:2}) + "</span>" : "";
+            item.innerHTML =
+              "<div class='venta-info'>" +
+                "<span class='venta-nombre'>" + d.producto + "</span>" +
+                etiquetaCantidad +
+                "<span class='venta-fecha'>" + fecha.toLocaleDateString("es-MX", {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"}) + "</span>" +
+              "</div>" +
+              "<span class='venta-precio'>$" + subtotal.toLocaleString("es-MX", {minimumFractionDigits:2}) + "</span>";
+            lista.appendChild(item);
+          });
+
+          totalEl.textContent = "$" + total.toLocaleString("es-MX", {minimumFractionDigits:2});
+          countEl.textContent = ventasHoy + (ventasHoy !== 1 ? " ventas hoy" : " venta hoy");
+
+          if (snapshot.empty) {
+            lista.innerHTML = "<div class='lista-vacia'>Todo listo! Registra tu primera venta arriba</div>";
+          }
+        });
+      }
+
+      window.registrarVenta = async function() {
+        const productoEl  = document.getElementById("producto");
+        const precioEl    = document.getElementById("precio");
+        const cantidadEl  = document.getElementById("cantidad");
+        const btn         = document.getElementById("btnRegistrar");
+        const producto    = productoEl.value.trim();
+        const precio      = parseFloat(precioEl.value);
+        const cantidad    = parseInt(cantidadEl.value) || 1;
+
+        if (!producto || isNaN(precio) || precio <= 0) {
+          mostrarToast("Escribe el producto y un precio valido", "error");
+          return;
+        }
+        if (cantidad < 1) {
+          mostrarToast("La cantidad debe ser al menos 1", "error");
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        try {
+          await addDoc(collection(db, "clientes", window.clienteID, "ventas"), { 
+            producto, 
+            precio, 
+            cantidad, 
+            fecha: serverTimestamp() 
+          });
+          
+          productoEl.value  = "";
+          precioEl.value    = "";
+          cantidadEl.value  = "";
+          productoEl.focus();
+          mostrarToast("Venta anotada! ✅");
+        } catch(e) {
+          mostrarToast("Error al guardar. Revisa tu conexion.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "✔ Anotar venta";
+        }
+      };
+
+      window.exportarCSV = function() {
+        const datos = window._ventasData || [];
+        if (!datos.length) { mostrarToast("No hay ventas para exportar", "error"); return; }
+
+        const fechaReporte = new Date().toLocaleDateString("es-MX", {day:"2-digit", month:"long", year:"numeric"});
+        const horaReporte  = new Date().toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit"});
+
+        let csv = "";
+        csv += '"DON CAJA - Reporte de Ventas"\n';
+        csv += '"Fecha del reporte:","' + fechaReporte + '  ' + horaReporte + '"\n';
+        csv += '"Cliente ID:","' + window.clienteID + '"\n\n'; 
+        csv += '"No.","Producto / Servicio","Cantidad","Precio Unitario","Subtotal Venta","Fecha y Hora","Total Acumulado"\n';
+
+        let total = 0;
+        let folio = 1;
+        const datosAsc = [...datos].reverse();
+
+        datosAsc.forEach(function(d) {
+          const fecha    = d.fecha && d.fecha.toDate ? d.fecha.toDate().toLocaleString("es-MX") : "-";
+          const cantidad = d.cantidad || 1;
+          const subtotal = d.precio * cantidad;
+          total += subtotal;
+          csv += folio + ',"' + d.producto + '",' + cantidad + ',$' + d.precio.toFixed(2) + ',$' + subtotal.toFixed(2) + ',"' + fecha + '",$' + total.toFixed(2) + '\n';
+          folio++;
+        });
+
+        csv += '\n"","","","TOTAL GENERAL:","$' + total.toFixed(2) + '"\n';
+        csv += '"","","","No. de ventas:",' + datos.length + '\n\n';
+        csv += '"Generado por Don Caja  |  doncaja-app.firebaseapp.com"\n';
+
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = "DonCaja_" + window.clienteID + "_" + new Date().toLocaleDateString("es-MX").replace(/\//g, "-") + ".csv";
+        a.click();
+        URL.revokeObjectURL(url);
+        mostrarToast("Reporte descargado ✅");
+      };
+
+      function mostrarToast(msg, tipo) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className   = "toast show" + (tipo ? " " + tipo : "");
+        setTimeout(function() { t.className = "toast"; }, 2800);
+      }
+    </script>
+
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        button { padding: 10px 15px; margin: 5px 0; cursor: pointer; }
-        #resultado { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; margin-top: 15px; min-height: 50px; }
-        .seccion { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #ccc; }
+        :root {
+            --verde: #006847;
+            --oro:   #F5C518;
+            --rojo:  #CE1126;
+            --crema: #FFF8EC;
+            --cafe:  #3D1C02;
+            --gris:  #f7f7f5;
+            --borde: #EDE3D4;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Nunito Sans', sans-serif; background: var(--crema); color: var(--cafe); min-height: 100vh; }
+
+        #pantalla-login {
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px;
+            background-image: radial-gradient(circle at 15% 85%, rgba(245,197,24,0.12) 0%, transparent 50%),
+                              radial-gradient(circle at 85% 15%, rgba(0,104,71,0.09) 0%, transparent 50%);
+        }
+        .card {
+            background: #fff; padding: 32px 28px 24px; border-radius: 24px; box-shadow: 0 8px 40px rgba(61,28,2,0.13);
+            max-width: 390px; width: 100%; position: relative; overflow: hidden;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+            background: linear-gradient(90deg, var(--verde) 33%, #fff 33% 66%, var(--rojo) 66%);
+        }
+        .mascota-wrap { text-align: center; margin-bottom: 6px; }
+        .mascota-wrap img {
+            width: 120px; height: 120px; border-radius: 50%; object-fit: cover; object-position: center top;
+            border: 4px solid var(--oro); box-shadow: 0 4px 20px rgba(245,197,24,0.4);
+            animation: pop 0.6s cubic-bezier(.36,1.56,.64,1) both;
+        }
+        @keyframes pop {
+            from { opacity:0; transform: scale(0.4) translateY(16px); }
+            to   { opacity:1; transform: scale(1) translateY(0); }
+        }
+        .login-h1 { text-align: center; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 30px; color: var(--cafe); margin: 10px 0 4px; }
+        .login-h1 span { color: var(--verde); }
+        .login-sub { text-align: center; font-size: 13.5px; color: #888; font-weight: 600; margin-bottom: 18px; }
+        .feature {
+            background: var(--crema); border: 1.5px solid #F0E6CE; border-left: 4px solid var(--oro);
+            padding: 13px 15px; border-radius: 12px; margin-bottom: 18px; font-size: 13.5px; line-height: 2; color: #555;
+        }
+        .feature b { color: var(--cafe); }
+        .stripe-btn {
+            display: block; text-align: center; padding: 15px; background: linear-gradient(135deg, var(--oro) 0%, #e6a800 100%);
+            color: var(--cafe); border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 16px; 
+            font-family: 'Nunito', sans-serif; box-shadow: 0 4px 16px rgba(245,197,24,0.38); transition: transform 0.2s;
+        }
+        .stripe-btn:active { transform: scale(0.98); }
+        .gothic-signature { text-align: center; margin-top: 22px; font-family: 'Georgia', serif; font-size: 15px; color: #ccc; letter-spacing: 1px; }
+        .copyright { text-align:center; font-size:10px; color:#ddd; margin-top:5px; }
+
+        /* DASHBOARD */
+        #pantalla-dashboard { display: none; background: var(--gris); min-height: 100vh; padding-bottom: 40px; }
+        .header { background: var(--verde); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 12px rgba(0,104,71,0.2); }
+        .header h2 { font-family:'Nunito',sans-serif; font-weight:900; font-size:22px; color:#fff; }
+        .header h2 span { color: var(--oro); }
+        .badge-dia { background: rgba(255,255,255,0.15); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+        .total-card { margin: 16px 16px 0; background:#fff; border-radius:16px; padding:20px; border:1.5px solid var(--borde); display:flex; align-items:center; justify-content:space-between; }
+        .total-label { font-size:11px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; }
+        .total-monto { font-family:'Nunito',sans-serif; font-weight:900; font-size:34px; color:var(--verde); line-height:1; }
+        .total-conteo { font-size:12px; color:#999; margin-top:4px; font-weight:600; }
+        .exportar-btn { background: var(--oro); color:var(--cafe); border:none; border-radius:12px; padding:12px 14px; font-family:'Nunito',sans-serif; font-weight:800; font-size:13px; cursor:pointer; text-align:center; line-height:1.4; box-shadow:0 3px 10px rgba(245,197,24,0.3); transition:transform 0.15s; }
+        .exportar-btn:active { transform: scale(0.96); }
+        .form-card { margin:14px 16px 0; background:#fff; border-radius:16px; padding:18px; border:1.5px solid var(--borde); }
+        .form-titulo { font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; margin-bottom:14px; }
+        .form-row { display:flex; gap:10px; margin-bottom:12px; }
+        .form-row input { flex:1; padding:13px 14px; border:2px solid var(--borde); border-radius:12px; font-size:15px; font-family:'Nunito Sans',sans-serif; color:var(--cafe); background:var(--crema); outline:none; transition:border-color 0.2s; -webkit-appearance:none; }
+        .form-row input:focus { border-color:var(--verde); background:#fff; }
+        .form-row input::placeholder { color:#c0a98a; }
+        .input-precio { max-width:130px; }
+        .input-cantidad { max-width:160px; font-weight:700; }
+        .venta-cantidad { font-size:12px; color:#888; font-weight:600; }
+        .btn-registrar { width:100%; padding:15px; background:var(--verde); color:#fff; border:none; border-radius:12px; font-family:'Nunito',sans-serif; font-weight:900; font-size:17px; cursor:pointer; box-shadow:0 4px 14px rgba(0,104,71,0.25); transition:transform 0.15s; }
+        .btn-registrar:active { transform:scale(0.98); }
+        .btn-registrar:disabled { opacity:0.6; cursor:not-allowed; }
+        .lista-titulo { font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; margin:20px 16px 10px; }
+        #listaVentas { padding:0 16px; }
+        .venta-item { background:#fff; border:1.5px solid var(--borde); border-radius:12px; padding:14px 16px; margin-bottom:9px; display:flex; align-items:center; justify-content:space-between; animation:slide-in 0.25s ease both; }
+        .venta-item.hoy { border-left:4px solid var(--oro); }
+        @keyframes slide-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .venta-info { display:flex; flex-direction:column; gap:3px; }
+        .venta-nombre { font-weight:700; font-size:15px; }
+        .venta-fecha { font-size:11px; color:#bbb; font-weight:600; }
+        .venta-precio { font-family:'Nunito',sans-serif; font-weight:900; font-size:17px; color:var(--verde); }
+        .lista-vacia { text-align:center; padding:40px 20px; color:#bbb; font-size:15px; line-height:1.8; font-weight:600; }
+        .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--cafe); color:#fff; padding:12px 22px; border-radius:30px; font-size:14px; font-weight:700; font-family:'Nunito',sans-serif; opacity:0; transition:all 0.3s ease; z-index:999; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast.error { background:var(--rojo); }
     </style>
 </head>
 <body>
 
-    <h1>Conexión a tu Base de Datos</h1>
+    <!-- PANTALLA 1: LOGIN / PREMIUM -->
+    <div id="pantalla-login">
+        <div class="card">
+            
+            <!-- 1. IMAGEN PRINCIPAL (La mascota) -->
+            <div class="mascota-wrap">
+                <img src="https://res.cloudinary.com/dp710nwyv/image/upload/v1782807158/Videoframe_20260629_185745_com.huawei.himovie.overseas_nnr7p8.jpg" alt="Don Caja">
+            </div>
 
-    <!-- SECCIÓN PARA LEER DATOS -->
-    <div class="seccion">
-        <h2>1. Leer Datos</h2>
-        <button onclick="traerDatos()">Obtener información de la tabla</button>
-        <pre id="resultado">Aquí aparecerán los datos...</pre>
+            <h1 class="login-h1"><span>Don</span> Caja 💼</h1>
+            <p class="login-sub">El control financiero que tu negocio necesita, simplificado al maximo.</p>
+            
+            <!-- 2. INSTRUCCIONES ORIGINALES -->
+            <div class="feature">
+                🚀 <b>Registro Inteligente:</b> Escribe tu venta y la app hace el resto.<br>
+                📊 <b>Reportes al Instante:</b> Descarga tu flujo de caja a Excel.<br>
+                🔐 <b>Seguridad Total:</b> Tus datos son privados y aislados por tu clave.
+            </div>
+            
+            <!-- 3. VIDEO NATIVO (Automático, sin sonido, en bucle y optimizado para móviles) -->
+            <div id="video-container" style="max-width: 100%; margin: 20px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <video 
+                    src="https://res.cloudinary.com/dp710nwyv/video/upload/f_auto,q_auto/petal_20260630_002659_mwr79u.mp4" 
+                    autoplay 
+                    loop 
+                    muted 
+                    playsinline 
+                    controls
+                    style="width: 100%; height: auto; display: block; background-color: #000;">
+                </video>
+            </div>
+
+            <!-- 4. BOTÓN PREMIUM -->
+            <a href="https://buy.stripe.com/aFafZh0oK648eYD8xVew800" target="_blank" class="stripe-btn">
+                Obtener Suscripción Premium
+            </a>
+            
+            <div class="gothic-signature">Solvens Amoris</div>
+            <div class="copyright">2026. Todos los derechos reservados.</div>
+        </div>
     </div>
 
-    <!-- SECCIÓN PARA INSERTAR DATOS -->
-    <div class="seccion">
-        <h2>2. Insertar Datos de Prueba</h2>
-        <p>Abre el código y cambia <b>nombre_columna_1</b> por una columna real de tu tabla antes de presionar este botón.</p>
-        <button onclick="insertarDatos()">Guardar un nuevo registro</button>
+    <!-- PANTALLA 2: DASHBOARD -->
+    <div id="pantalla-dashboard">
+        <div class="header">
+            <h2><span>Don</span> Caja 💼</h2>
+            <span class="badge-dia" id="fechaHoy"></span>
+        </div>
+        <div class="total-card">
+            <div>
+                <div class="total-label">Total de hoy</div>
+                <div class="total-monto" id="totalDia">$0.00</div>
+                <div class="total-conteo" id="conteoVentas">0 ventas hoy</div>
+            </div>
+            <button class="exportar-btn" onclick="exportarCSV()">📊 Exportar<br>a Excel</button>
+        </div>
+        <div class="form-card">
+            <div class="form-titulo">✏️ Anotar venta</div>
+            <div class="form-row">
+                <input type="text"   id="producto" placeholder="Producto o servicio" autocomplete="off">
+                <input type="number" id="precio"   placeholder="Precio $0.00" class="input-precio" min="0" step="0.01">
+            </div>
+            <div class="form-row">
+                <input type="number" id="cantidad" placeholder="Cantidad (ej: 3)" class="input-cantidad" min="1" step="1" value="1">
+            </div>
+            <button class="btn-registrar" id="btnRegistrar" onclick="registrarVenta()">✔ Anotar venta</button>
+        </div>
+        <div class="lista-titulo">📋 Movimientos del dia</div>
+        <div id="listaVentas">
+            <div class="lista-vacia">Conectando con Firebase... 🔄</div>
+        </div>
     </div>
 
-    <script>
-        // 1. TUS LLAVES (Ya configuradas)
-        const supabaseUrl = 'https://lieysjlpiwsqjsdmcaay.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpZXlzamxwaXdzcWpzZG1jYWF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDYzNDAsImV4cCI6MjA5ODM4MjM0MH0.fCWLx6mi9qkhT-AgG_CeQPBIlFV65Bv8gix9zWnEteE';
-        
-        // 2. INICIALIZAR CONEXIÓN
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    <div class="toast" id="toast"></div>
 
-        // --- ATENCIÓN: CAMBIA ESTO ---
-        const NOMBRE_DE_LA_TABLA = 'TU_TABLA_AQUI'; // Pon el nombre real de tu tabla
-        // -----------------------------
-
-        // 3. FUNCIÓN PARA LEER DATOS
-        async function traerDatos() {
-            document.getElementById('resultado').innerHTML = "Cargando...";
-            
-            const { data, error } = await supabase
-                .from(NOMBRE_DE_LA_TABLA)
-                .select('*');
-
-            if (error) {
-                document.getElementById('resultado').innerHTML = "ERROR: " + error.message;
-            } else {
-                document.getElementById('resultado').innerHTML = JSON.stringify(data, null, 2);
-            }
-        }
-
-        // 4. FUNCIÓN PARA INSERTAR DATOS
-        async function insertarDatos() {
-            // --- ATENCIÓN: CAMBIA LAS COLUMNAS ---
-            // Reemplaza "nombre_columna_1" por el nombre real de una columna en tu tabla de Supabase
-            const nuevoRegistro = {
-                nombre_columna_1: "Texto de prueba desde HTML" 
-            };
-            
-            const { data, error } = await supabase
-                .from(NOMBRE_DE_LA_TABLA)
-                .insert([nuevoRegistro])
-                .select();
-
-            if (error) {
-                alert("Hubo un error al insertar: " + error.message);
-            } else {
-                alert("¡Registro insertado con éxito!");
-                traerDatos(); // Actualiza la lista en pantalla automáticamente
-            }
-        }
-    </script>
 </body>
 </html>
